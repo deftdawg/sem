@@ -8,6 +8,7 @@ use sem_core::model::change::ChangeType;
 use sem_core::parser::differ::compute_semantic_diff;
 use sem_core::parser::plugins::create_default_registry;
 
+use crate::formatters::markdown::format_markdown;
 use crate::formatters::terminal::format_terminal;
 use crate::commands::diff::OutputFormat;
 
@@ -93,6 +94,13 @@ pub fn review_command(branch: &str, opts: ReviewOptions) {
         return;
     }
 
+    if opts.format == OutputFormat::Markdown {
+        println!("## Review: {} ← {}\n", opts.base, branch);
+        println!("{}", format_markdown(&result));
+        print_risks_markdown(&result);
+        return;
+    }
+
     // Terminal output
     println!("{}", format!("\n  Review: {} ← {}\n", opts.base, branch).dimmed());
 
@@ -144,5 +152,50 @@ pub fn review_command(branch: &str, opts: ReviewOptions) {
             println!("{risk}");
         }
         println!();
+    }
+}
+
+fn print_risks_markdown(result: &sem_core::parser::differ::DiffResult) {
+    let mut risks: Vec<String> = Vec::new();
+
+    let deleted_functions: Vec<_> = result.changes.iter().filter(|c| {
+        c.change_type == ChangeType::Deleted
+            && (c.entity_type == "function" || c.entity_type == "method")
+    }).collect();
+
+    if !deleted_functions.is_empty() {
+        let names: Vec<&str> = deleted_functions.iter().map(|f| f.entity_name.as_str()).collect();
+        risks.push(format!(
+            "- ⚠️ {} function{} deleted: `{}`",
+            deleted_functions.len(),
+            if deleted_functions.len() > 1 { "s" } else { "" },
+            names.join("`, `"),
+        ));
+    }
+
+    let modified_configs = result.changes.iter().filter(|c| {
+        c.change_type == ChangeType::Modified
+            && (c.entity_type == "property" || c.entity_type == "section")
+    }).count();
+
+    if modified_configs > 5 {
+        risks.push(format!(
+            "- ⚠️ {} config properties changed — verify production settings",
+            modified_configs,
+        ));
+    }
+
+    if result.changes.len() > 50 {
+        risks.push(format!(
+            "- ⚠️ Large changeset ({} entities) — consider splitting",
+            result.changes.len(),
+        ));
+    }
+
+    if !risks.is_empty() {
+        println!("\n### Risk signals\n");
+        for risk in &risks {
+            println!("{risk}");
+        }
     }
 }
