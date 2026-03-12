@@ -9,12 +9,13 @@ import { SemDatabase } from '../../storage/database.js';
 import { formatTerminal } from '../formatters/terminal.js';
 import { formatJson } from '../formatters/json.js';
 import { formatMarkdown } from '../formatters/markdown.js';
+import { formatPlaintext } from '../formatters/plain.js';
 import { createDefaultRegistry } from '../../parser/plugins/index.js';
 import { loadConfig, validateChanges, formatValidationResults } from './validate.js';
 
 export interface DiffOptions {
   cwd?: string;
-  format?: 'terminal' | 'json' | 'markdown';
+  format?: 'terminal' | 'json' | 'markdown' | 'plain';
   staged?: boolean;
   commit?: string;
   from?: string;
@@ -90,6 +91,8 @@ export async function diffCommand(opts: DiffOptions = {}): Promise<void> {
     console.log(formatJson(result));
   } else if (format === 'markdown') {
     console.log(formatMarkdown(result));
+  } else if (format === 'plain') {
+    console.log(formatPlaintext(result));
   } else {
     console.log(formatTerminal(result));
   }
