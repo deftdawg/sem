@@ -6,6 +6,7 @@ use commands::blame::{blame_command, BlameOptions};
 use commands::diff::{diff_command, DiffOptions, OutputFormat};
 use commands::graph::{graph_command, GraphFormat, GraphOptions};
 use commands::impact::{impact_command, ImpactOptions};
+use commands::review::{review_command, ReviewOptions};
 
 #[derive(Parser)]
 #[command(name = "sem", version = env!("CARGO_PKG_VERSION"), about = "Semantic version control")]
@@ -81,6 +82,24 @@ enum Commands {
         /// Output as JSON
         #[arg(long)]
         json: bool,
+    },
+    /// Semantic review of a branch (e.g. "feature-branch")
+    Review {
+        /// Branch to review
+        #[arg()]
+        branch: String,
+
+        /// Base branch to compare against
+        #[arg(long, short, default_value = "main")]
+        base: String,
+
+        /// Output format: terminal or json
+        #[arg(long, default_value = "terminal")]
+        format: String,
+
+        /// Only include files with these extensions (e.g. --file-exts .py .rs)
+        #[arg(long)]
+        file_exts: Vec<String>,
     },
     /// Show entity dependency graph
     Graph {
@@ -164,6 +183,27 @@ fn main() {
                 entity_name: entity,
                 file_paths: files,
                 json,
+                file_exts,
+            });
+        }
+        Some(Commands::Review {
+            branch,
+            base,
+            format,
+            file_exts,
+        }) => {
+            let output_format = match format.as_str() {
+                "json" => OutputFormat::Json,
+                _ => OutputFormat::Terminal,
+            };
+
+            review_command(&branch, ReviewOptions {
+                cwd: std::env::current_dir()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+                format: output_format,
+                base,
                 file_exts,
             });
         }
