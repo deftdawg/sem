@@ -93,7 +93,7 @@ enum Commands {
         #[arg(long, short, default_value = "main")]
         base: String,
 
-        /// Output format: terminal or json
+        /// Output format: terminal, json, or markdown
         #[arg(long, default_value = "terminal")]
         format: String,
 
@@ -194,6 +194,7 @@ fn main() {
         }) => {
             let output_format = match format.as_str() {
                 "json" => OutputFormat::Json,
+                "markdown" | "md" => OutputFormat::Markdown,
                 _ => OutputFormat::Terminal,
             };
 
